@@ -1,0 +1,127 @@
+name: Deploy to Sakura
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      run_migrate:
+        description: "Run migration after deploy"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      seed_bootstrap:
+        description: "Seed bootstrap accounting data (initial setup only)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-latest
+    env:
+      SAKURA_DOTENV: ${{ secrets.SAKURA_DOTENV }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, intl, mysqli, pdo_mysql, zip, dom
+
+      - name: Install production dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SAKURA_SSH_PRIVATE_KEY }}
+
+      - name: Add host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.SAKURA_PORT }}" "${{ secrets.SAKURA_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Ensure remote directories
+        run: |
+          ssh -p "${{ secrets.SAKURA_PORT }}" "${{ secrets.SAKURA_USER }}@${{ secrets.SAKURA_HOST }}" '
+            mkdir -p "${{ secrets.SAKURA_APP_DIR }}" \
+                     "${{ secrets.SAKURA_WEB_DIR }}" \
+                     "${{ secrets.SAKURA_APP_DIR }}/writable/cache" \
+                     "${{ secrets.SAKURA_APP_DIR }}/writable/logs" \
+                     "${{ secrets.SAKURA_APP_DIR }}/writable/session" \
+                     "${{ secrets.SAKURA_APP_DIR }}/writable/uploads" \
+                     "${{ secrets.SAKURA_APP_DIR }}/writable/debugbar"
+          '
+
+      - name: Deploy app directory
+        run: |
+          rsync -az --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='tests/' \
+            --exclude='build/' \
+            --exclude='builds/' \
+            --exclude='coverage/' \
+            --exclude='.data/' \
+            --exclude='public/' \
+            --exclude='writable/' \
+            --exclude='.env' \
+            --exclude='.env*' \
+            ./ "${{ secrets.SAKURA_USER }}@${{ secrets.SAKURA_HOST }}:${{ secrets.SAKURA_APP_DIR }}/"
+
+      - name: Upload production .env
+        if: ${{ env.SAKURA_DOTENV != '' }}
+        run: |
+          printf '%s' "$SAKURA_DOTENV" | \
+            ssh -p "${{ secrets.SAKURA_PORT }}" "${{ secrets.SAKURA_USER }}@${{ secrets.SAKURA_HOST }}" \
+            "cat > '${{ secrets.SAKURA_APP_DIR }}/.env'"
+
+      - name: Run migrations
+        if: ${{ github.event_name == 'workflow_run' || (github.event_name == 'workflow_dispatch' && inputs.run_migrate == 'true') }}
+        run: |
+          ssh -p "${{ secrets.SAKURA_PORT }}" "${{ secrets.SAKURA_USER }}@${{ secrets.SAKURA_HOST }}" '
+            cd "${{ secrets.SAKURA_APP_DIR }}"
+            php spark migrate -n App
+          '
+
+      - name: Seed bootstrap data
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.seed_bootstrap == 'true' }}
+        run: |
+          ssh -p "${{ secrets.SAKURA_PORT }}" "${{ secrets.SAKURA_USER }}@${{ secrets.SAKURA_HOST }}" '
+            cd "${{ secrets.SAKURA_APP_DIR }}"
+            php spark db:seed AccountingBootstrapSeeder
+          '
+
+      - name: Deploy web(public) directory
+        run: |
+          rsync -az --delete \
+            ./public/ "${{ secrets.SAKURA_USER }}@${{ secrets.SAKURA_HOST }}:${{ secrets.SAKURA_WEB_DIR }}/"
+
+      - name: Set writable permissions
+        run: |
+          ssh -p "${{ secrets.SAKURA_PORT }}" "${{ secrets.SAKURA_USER }}@${{ secrets.SAKURA_HOST }}" '
+            chmod -R 775 "${{ secrets.SAKURA_APP_DIR }}/writable"
+          '
+
+# Required repository secrets:
+# - SAKURA_SSH_PRIVATE_KEY
+# - SAKURA_HOST
+# - SAKURA_PORT
+# - SAKURA_USER
+# - SAKURA_APP_DIR
+# - SAKURA_WEB_DIR
+# Optional:
+# - SAKURA_DOTENV

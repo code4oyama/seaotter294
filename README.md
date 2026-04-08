@@ -1,0 +1,172 @@
+# NPO会計アプリ (CodeIgniter4)
+
+NPO法人・非営利法人向けの会計アプリです。  
+**複式簿記の整合性・監査性・安全な更新**を優先し、出納帳から仕訳、B/S・P/L・PDF出力までを扱います。
+
+---
+
+## 概要
+
+このアプリでは、以下の業務を一通り行えます。
+
+- 勘定科目マスタ管理
+- 会計期間管理
+- 出納帳の入力・一覧・仕訳転記
+- 仕訳の入力・一覧・詳細・編集・削除
+- AI提案による仕訳候補・相手科目候補の補助
+- 貸借対照表（B/S）・損益計算書（P/L）・出納帳のPDF出力
+- ログイン認証と権限管理
+- スマートフォンでも見やすいレスポンシブ表示
+
+---
+
+## 権限の種類
+
+| 権限 | できること |
+|---|---|
+| 閲覧ユーザー | 全データの閲覧のみ |
+| 編集者（制限付き） | 入力・更新は可能、削除は不可 |
+| 編集者（制限なし） | 入力・更新・削除が可能 |
+| 管理者 | 編集者（制限なし）の権限 + ユーザー管理 |
+
+### テスト用アカウント
+共通パスワード: `password123`
+
+| 権限 | アカウント1 | アカウント2 |
+|---|---|---|
+| 閲覧ユーザー | `viewer01@example.test` | `viewer02@example.test` |
+| 編集者（制限付き） | `limited01@example.test` | `limited02@example.test` |
+| 編集者（制限なし） | `editor01@example.test` | `editor02@example.test` |
+| 管理者 | `admin01@example.test` | `admin02@example.test` |
+
+---
+
+## ローカルセットアップ（Podman）
+
+```bash
+cd /Users/ringo/Documents/2026/work_CodeIgniter4/example003
+podman-compose up --build -d
+podman-compose exec app php spark migrate
+podman-compose exec app php spark db:seed AccountingBootstrapSeeder
+podman-compose exec app php spark db:seed DemoUsersSeeder
+podman-compose exec app php spark db:seed DemoJournalEntriesSeeder
+podman-compose exec app php spark db:seed DemoCashbookEntriesSeeder
+```
+
+### アクセス先
+- アプリ: `http://localhost:8080`
+- ログイン画面: `http://localhost:8080/login`
+
+> 補足: よく使うコマンドは `docs/bash_command.txt` に整理しています。
+
+---
+
+## AI提案機能の設定
+
+`.env` に以下を設定してください。
+
+```dotenv
+openai.apiKey = sk-xxxx
+openai.model = gpt-4o-mini
+```
+
+- `openai.apiKey`: OpenAI APIキー
+- `openai.model`: 利用モデル名（未設定時は `gpt-4o-mini`）
+
+### AI関連の現在仕様
+- 仕訳入力で自然文から借方・貸方候補を提案
+- 出納帳入力で相手科目候補を提案
+- **AIに伝えた入力文はDBに保存**し、仕訳詳細画面で再確認可能
+
+---
+
+## 主な画面
+
+- ダッシュボード: `/`
+- ログイン: `/login`
+- ユーザー管理: `/users`（管理者のみ）
+- 出納帳: `/cashbook`
+- 勘定科目一覧: `/accounts`
+- 会計期間一覧: `/fiscal-periods`
+- 仕訳一覧: `/journal-entries`
+- 帳票PDF: `/reports`
+
+---
+
+## テスト実行
+
+```bash
+# 全体テスト
+podman-compose exec app vendor/bin/phpunit --no-coverage
+
+# 認証・権限まわり
+podman-compose exec app vendor/bin/phpunit --no-coverage tests/feature/Step2/AuthFeatureTest.php
+
+# 出納帳まわり
+podman-compose exec app vendor/bin/phpunit --no-coverage tests/feature/Step2/CashbookFeatureTest.php
+```
+
+カバレッジを出す場合:
+
+```bash
+podman-compose exec app vendor/bin/phpunit --coverage-html coverage
+```
+
+---
+
+## GitHub Actions
+
+このリポジトリには、以下の workflow を用意しています。
+
+| ファイル | 用途 |
+|---|---|
+| `.github/workflows/ci.yml` | PHPUnit とカバレッジを GitHub Actions 上で実行 |
+| `.github/workflows/deploy-sakura.yml` | `main` 成功後、または手動実行でさくらサーバーへデプロイ |
+
+### `ci.yml`
+- `push` / `pull_request` / `workflow_dispatch` で実行
+- PHP 8.2 をセットアップ
+- Composer install 後に PHPUnit を実行
+- `build/logs/` を artifact として保存
+
+### `deploy-sakura.yml`
+- `CI` 成功後の `main` push を契機にデプロイ
+- `workflow_dispatch` から手動実行も可能
+- 必要に応じて `php spark migrate` を実行
+- 初期セットアップ時のみ `AccountingBootstrapSeeder` 実行も可能
+
+### デプロイに必要な Secrets
+- `SAKURA_SSH_PRIVATE_KEY`
+- `SAKURA_HOST`
+- `SAKURA_PORT`
+- `SAKURA_USER`
+- `SAKURA_APP_DIR`
+- `SAKURA_WEB_DIR`
+
+任意:
+- `SAKURA_DOTENV`
+
+---
+
+## 今後の拡張候補
+
+- 総勘定元帳
+- 試算表
+- CSV / Excel 取込
+- 取消仕訳・修正仕訳
+- 締め処理・月次集計の強化
+
+---
+
+## ライセンス
+
+本アプリは独自ライセンスです。
+
+- 利用・複製・改変: 可
+- 配布・再配布: 不可
+- 商用利用: 不可
+- 著作権表示の削除: 不可
+- 無保証
+
+詳細は `LICENSE` を参照してください。
+

@@ -1,0 +1,100 @@
+# ========================================
+# example003 開発用 Bash コマンドメモ
+# ========================================
+# Podman / CodeIgniter4 を前提にした、起動・初期化・テスト確認用のコマンド集です。
+# 基本的にはプロジェクトルート（example003/）で実行します。
+
+# ----------------------------------------
+# 1) コンテナ起動 / 停止
+# ----------------------------------------
+# 初回起動またはコンテナ再構築
+podman-compose up --build -d
+
+# 停止
+podman-compose down
+
+# コンテナ状態確認
+podman-compose ps
+
+# アプリログ確認
+podman-compose logs -f app
+
+
+# ----------------------------------------
+# 2) DBマイグレーション
+# ----------------------------------------
+# テーブル作成・更新を反映
+podman-compose exec app php spark migrate
+
+# 現在のマイグレーション状態を確認
+podman-compose exec app php spark migrate:status
+
+# DBテーブル一覧を確認
+podman-compose exec app php spark db:table
+
+
+# ----------------------------------------
+# 3) Seed データ投入
+# ----------------------------------------
+# 3-1) 初期データ投入（勘定科目・会計期間）
+podman-compose exec app php spark db:seed AccountingBootstrapSeeder
+
+# 3-2) テスト用ユーザーを投入
+# 共通パスワード: password123
+podman-compose exec app php spark db:seed DemoUsersSeeder
+
+# 3-3) デモ用の仕訳データを1年分投入
+podman-compose exec app php spark db:seed DemoJournalEntriesSeeder
+
+# 3-4) デモ用の出納帳データを投入
+podman-compose exec app php spark db:seed DemoCashbookEntriesSeeder
+
+
+# ----------------------------------------
+# 4) 動作確認
+# ----------------------------------------
+# アプリURL
+# http://localhost:8080
+
+# ログイン画面
+# http://localhost:8080/login
+
+# テスト用アカウント例
+# - 閲覧ユーザー: viewer01@example.test / password123
+# - 制限付き編集者: limited01@example.test / password123
+# - 制限なし編集者: editor01@example.test / password123
+# - 管理者: admin01@example.test / password123
+
+
+# ----------------------------------------
+# 5) テスト実行
+# ----------------------------------------
+# 全テスト実行（通常はこちら）
+podman-compose exec app vendor/bin/phpunit --no-coverage
+
+# 認証・権限まわりのみ確認
+podman-compose exec app vendor/bin/phpunit --no-coverage tests/feature/Step2/AuthFeatureTest.php
+
+# 出納帳まわりのみ確認
+podman-compose exec app vendor/bin/phpunit --no-coverage tests/feature/Step2/CashbookFeatureTest.php
+
+# 仕訳AIまわりのみ確認
+podman-compose exec app vendor/bin/phpunit --no-coverage tests/feature/Step1/JournalEntriesAiFeatureTest.php tests/feature/Step1/JournalEntriesCrudFeatureTest.php
+
+
+# ----------------------------------------
+# 6) カバレッジ出力
+# ----------------------------------------
+# HTML カバレッジを coverage/ に出力
+podman-compose exec app vendor/bin/phpunit --coverage-html coverage
+
+# AI提案関連のテストだけ絞って実行
+podman-compose exec app vendor/bin/phpunit --coverage-html coverage --filter 'JournalEntryAiServiceTest|JournalEntriesAiFeatureTest'
+
+
+# ----------------------------------------
+# 7) 補足
+# ----------------------------------------
+# DBの中身を直接確認したい場合の例
+podman-compose exec db mariadb -uci4_user -pci4_pass ci4_app
+
