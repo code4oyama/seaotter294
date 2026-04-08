@@ -136,15 +136,40 @@ podman-compose exec app vendor/bin/phpunit --coverage-html coverage
 - 初期セットアップ時のみ `AccountingBootstrapSeeder` 実行も可能
 
 ### デプロイに必要な Secrets
-- `SAKURA_SSH_PRIVATE_KEY`
-- `SAKURA_HOST`
-- `SAKURA_PORT`
-- `SAKURA_USER`
-- `SAKURA_APP_DIR`
-- `SAKURA_WEB_DIR`
+さくらインターネットの**レンタルサーバー**へ CodeIgniter4 アプリを配置する想定では、以下の値を設定します。
+
+- `SAKURA_SSH_PRIVATE_KEY`  
+  GitHub Actions から SSH 接続するための秘密鍵。  
+  例: ローカルで作成した `id_ed25519` の秘密鍵ファイルの本文
+
+- `SAKURA_HOST`  
+  さくらの SSH 接続先ホスト名。  
+  例: `sakura_rental_server_account.sakura.ne.jp`
+
+- `SAKURA_PORT`  
+  SSH の接続ポート。通常は `22`。  
+  例: `22`
+
+- `SAKURA_USER`  
+  さくらレンタルサーバーの SSH ログインユーザー名。  
+  例: `sakura_rental_server_account`
+
+- `SAKURA_APP_DIR`  
+  **CodeIgniter4 本体一式**（`app/`, `writable/`, `vendor/` など）を置くディレクトリ。  
+  `public/` の外側に置く前提です。  
+  例: `/home/sakura_rental_server_account/www/seaotter294`
+
+- `SAKURA_WEB_DIR`  
+  **Web公開ディレクトリ**。CodeIgniter4 の `public/` の中身を同期する先です。  
+  さくらでは通常 `www/` 配下を公開領域にします。  
+  例: `/home/sakura_rental_server_account/www/seaotter294/public`
 
 任意:
-- `SAKURA_DOTENV`
+- `SAKURA_DOTENV`  
+  本番用 `.env` の中身をそのまま Secret に入れておく用途。  
+  DB接続先、`app.baseURL`、`openai.apiKey` などを含めます。
+
+> 推奨構成: `public/` の内容だけを `SAKURA_WEB_DIR` に公開し、アプリ本体は `SAKURA_APP_DIR` に置くと、CodeIgniter4 の標準的な安全構成にしやすいです。
 
 ---
 
