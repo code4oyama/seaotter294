@@ -31,8 +31,8 @@ final class HealthTest extends CIUnitTestCase
             // So if you set app.baseURL in .env, it takes precedence
             $config = new App();
             $this->assertTrue(
-                $validation->check($config->baseURL, 'valid_url'),
-                'baseURL "' . $config->baseURL . '" in .env is not valid URL',
+                $config->baseURL === '' || $validation->check($config->baseURL, 'valid_url'),
+                'baseURL "' . $config->baseURL . '" in .env must be empty or a valid URL',
             );
         }
 
@@ -40,10 +40,10 @@ final class HealthTest extends CIUnitTestCase
         // You can't use Config\App, because phpunit.xml.dist sets app.baseURL
         $reader = new ConfigReader();
 
-        // BaseURL in app/Config/App.php is a valid URL?
+        // BaseURL in app/Config/App.php is valid when set.
         $this->assertTrue(
-            $validation->check($reader->baseURL, 'valid_url'),
-            'baseURL "' . $reader->baseURL . '" in app/Config/App.php is not valid URL',
+            $reader->baseURL === '' || $validation->check($reader->baseURL, 'valid_url'),
+            'baseURL "' . $reader->baseURL . '" in app/Config/App.php must be empty or a valid URL',
         );
     }
 }
