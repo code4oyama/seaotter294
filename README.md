@@ -146,7 +146,7 @@ podman-compose exec app vendor/bin/phpunit --coverage-html coverage
 さくらインターネットの**レンタルサーバー**へ CodeIgniter4 アプリを配置する想定では、以下の値を設定します。
 
 - `SAKURA_SSH_PRIVATE_KEY`  
-  GitHub Actions から SSH 接続するための秘密鍵。  
+  GitHub Actions から SSH 接続するための秘密鍵。パスキーなしのオプションで鍵を生成する。
   例: ローカルで作成した `id_ed25519` の秘密鍵ファイルの本文
 
 - `SAKURA_HOST`  
