@@ -15,8 +15,11 @@ class App extends BaseConfig
      * WITH a trailing slash:
      *
      * E.g., http://example.com/
+     *
+     * 空文字にすると、リクエストから現在の URL を自動判定します。
+     * 本番環境では `.env` の `app.baseURL` で明示上書きする想定です。
      */
-    public string $baseURL = 'http://localhost:8080/';
+    public string $baseURL = '';
 
     /**
      * Allowed Hostnames in the Site URL other than the hostname in the baseURL.

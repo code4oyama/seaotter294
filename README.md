@@ -169,7 +169,12 @@ podman-compose exec app vendor/bin/phpunit --coverage-html coverage
 任意:
 - `SAKURA_DOTENV`  
   本番用 `.env` の中身をそのまま Secret に入れておく用途。  
-  DB接続先、`app.baseURL`、`openai.apiKey` などを含めます。
+  DB接続先、`app.baseURL`、`openai.apiKey` などを含めます。  
+  **`app.baseURL` は本番ドメインに必ず合わせてください。** 例:
+  ```dotenv
+  CI_ENVIRONMENT = production
+  app.baseURL = 'https://seaotter.frog256.org/'
+  ```
 
 > 推奨構成: `public/` の内容だけを `SAKURA_WEB_DIR` に公開し、アプリ本体は `SAKURA_APP_DIR` に置くと、CodeIgniter4 の標準的な安全構成にしやすいです。
 
