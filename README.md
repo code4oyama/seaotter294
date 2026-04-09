@@ -164,6 +164,8 @@ podman-compose exec app vendor/bin/phpunit --coverage-html coverage
   さくらでは通常 `www/` 配下を公開領域にします。  
   例: `/home/sakura_rental_server_account/www/seaotter294/public`
 
+> 補足: サーバー側の DocumentRoot を `public/` にできない場合でも、リポジトリ直下の `.htaccess` で `/public` へ転送するフォールバックを用意しています。ただし、**最優先は DocumentRoot を `public/` に合わせること**です。
+
 任意:
 - `SAKURA_DOTENV`  
   本番用 `.env` の中身をそのまま Secret に入れておく用途。  
