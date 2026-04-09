@@ -1,18 +1,19 @@
-# さくらレンタルサーバー等で DocumentRoot がプロジェクトルートを向く環境向け
-# Web リクエストを public/ 配下の front controller へ転送するフォールバック設定
+# Repository root fallback for environments where DocumentRoot points to project root
+# Routes all non-file/non-directory requests to /public.
 
-Options -Indexes
-DirectoryIndex public/index.php
+DirectoryIndex index.php public/index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # public/ 直下へのアクセスはそのまま処理する
-    RewriteRule ^public/ - [L]
-
-    # ルートアクセスは public/index.php へ送る
+    # Root path to public front controller
     RewriteRule ^$ public/index.php [L]
 
-    # それ以外のリクエストも public/ 配下へ転送する
+    # Keep existing files/directories at root accessible if needed
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Route all app requests through public front controller
     RewriteRule ^(.*)$ public/$1 [L,QSA]
 </IfModule>
