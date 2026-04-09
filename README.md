@@ -180,7 +180,7 @@ podman-compose exec app vendor/bin/phpunit --coverage-html coverage
   **`app.baseURL` は本番ドメインに必ず合わせてください。** 例:
   ```dotenv
   CI_ENVIRONMENT = production
-  app.baseURL = 'https://seaotter.frog256.org/'
+  app.baseURL = 'https://seaotter294.frog256.org/'
   ```
 
 > 推奨構成: `public/` の内容だけを `SAKURA_WEB_DIR` に公開し、アプリ本体は `SAKURA_APP_DIR` に置くと、CodeIgniter4 の標準的な安全構成にしやすいです。
