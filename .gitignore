@@ -122,6 +122,7 @@ _modules/*
 
 # Visual Studio Code
 .vscode/
+*.code-workspace
 
 /results/
 /phpunit*.xml
